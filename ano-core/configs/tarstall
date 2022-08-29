@@ -1,0 +1,398 @@
+#!/usr/bin/env sh
+# tarstall - Install programs from tar archives.
+
+. "${ANO_SH_LIBS_DIR}/liblog.sh"
+log_set_name "tarstall"
+
+die ()
+{
+	local errcode="$1"
+	shift
+	[ $# -ne 0 ] && log_err "$@"
+	print_usage
+	exit "${errcode}"
+}
+
+op_failed_try ()
+{
+    if [ -n "$1" ]; then
+        log_err "operation failed - cleaning up..."
+        eval "$1"
+        [ "$?" -ne 0 ] && log_err "clean up failed as well :O"
+    else
+        log_err "operation failed - no recovery needed."
+    fi
+    return 0
+}
+
+configfile ()
+{
+    if [ "$1" = "write" ]; then
+        echo "# MUTABLE #" >> "${conffile}"
+        echo "current=\"${inspath}\"" >> "${conffile}"
+        echo "actions=" >> "${conffile}"
+        echo "# UNMUTABLE #" >> "${conffile}"
+        echo "binpath=\"${binpath}\"" >> "${conffile}"
+        echo "binfile=\"${binfile}\"" >> "${conffile}"
+        echo "[ \"\${cmd}\" = \"uninstall\" ] && actions=\"${_wsudo}rm \\\"\${binpath}/\${binfile}\\\";\${actions}\"" >> "${conffile}"
+        echo "icopath=\"${icopath}\"" >> "${conffile}"
+        echo "icofile=\"${icofile}\"" >> "${conffile}"
+        echo "[ \"\${cmd}\" = \"uninstall\" ] && actions=\"${_wsudo}rm \\\"\${icopath}/\${icofile}\\\";\${actions}\"" >> "${conffile}"
+        echo "despath=\"${despath}\"" >> "${conffile}"
+        echo "desfile=\"${desfile}\"" >> "${conffile}"
+        echo "[ \"\${cmd}\" = \"uninstall\" ] && actions=\"${_wsudo}rm \\\"\${despath}/\${desfile}\\\";\${actions}\"" >> "${conffile}"
+        echo "sympath=\"${sympath}\"" >> "${conffile}"
+        echo "[ \"\${cmd}\" = \"uninstall\" ] && actions=\"${_wsudo}rm \\\"\${sympath}\\\";\${actions}\"" >> "${conffile}"
+        echo "# INSTALLATIONS #" >> "${conffile}"
+        echo "insdate=\"$(date)\"" >> "${conffile}"
+        echo "inspath=\"${inspath}\"" >> "${conffile}"
+        echo "[ \"\${cmd}\" = \"clean\" ] && [ \"\${inspath}\" != \"\${current}\" ] || [ \"\${cmd}\" = \"uninstall\" ] \\" >> "${conffile}"
+        echo "    && actions=\"${_wsudo}rm -rf \\\"\${inspath}/\\\";\${actions}\"" >> "${conffile}"
+    fi
+}
+
+print_usage ()
+{
+	echo "Usage: tarstall: [-h] [-n] [-q] [-f] [-u] [-s srcdir] [-b binary] [-i icon] [-d desktopfile] -p program"
+	echo "                 -- install | update | uninstall | clean"
+}
+
+print_help ()
+{
+	echo "tarstall - management tool for programs bundled in tar archives"
+	echo "Version 0.1 (C) 2022 Andrei N. Onea"
+	print_usage
+	echo ""
+	echo "Options:"
+	echo "    -h    help       prints this message"
+	echo "    -n    dry-run    simulate a run by only printing the steps"
+	echo "    -q    quiet      suppress output"
+	echo "    -f    force      override installation if same version found"
+	echo "    -u    user*      install in ~/.local/opt/ instead of default /opt"
+	echo "    -s    srcdir     directory where the unarchived program resides"
+	echo "    -b    binary     file that shall be sym-linked into a system bin dir"
+	echo "    -i    icon       file that shall be sym-linked into a system icons dir"
+	echo "    -d    desktop    file that shall be sym-linked into a system applications dir"
+	echo "    -p    program    user-defined identifier for program being acted upon"
+	echo "Commands:"
+	echo "    install    REQUIRES    program binary icon desktop"
+	echo "               OPTIONAL    dry-run quiet srcdir user"
+	echo ""
+	echo "               If srcdir is not specified, it is assumed the script is"
+	echo "               called from the unarchived program directory. This is"
+	echo "               where it expects to find binary, icon, desktop."
+	echo ""
+	echo "               program is just an identifier, but it is recommended"
+	echo "               to be named after the program, without any version"
+	echo "               numbers or anything. For subsequent installs, tarstall"
+	echo "               will reuse that identifier. More on that in update."
+	echo ""
+	echo "               binary, icon, desktop must be found inside srcdir. They will be"
+	echo "               symlinked inside a directory called program in */opt."
+	echo "               That in turn will be a symlink to an exact copy of srcdir"
+	echo "               that usually will keep the version information in its"
+	echo "               name."
+	echo ""
+	echo "               The final step is to create files in ~/.config/tarstall"
+	echo "               containing uninstall steps. These will not be explained"
+	echo "               here, but feel free to browse that directory."
+	echo ""
+	echo "    update     REQUIRES    program"
+	echo "               OPTIONAL    dry-run quiet srcdir binary icon desktop"
+	echo ""
+	echo "               The unarchived program files will again be copied as is"
+	echo "               in a new directory in */opt with the name of srcdir. Usually,"
+	echo "               if the first installation was named 'foo-1.1.0', then"
+	echo "               it is expected that the second will be 'foo-1.2.0' or"
+	echo "               something. The script will change the symlink to the"
+	echo "               versionless directory to the newly copied directory."
+	echo "               The binary and icon symlinks remain unchanged."
+	echo ""
+	echo "               binary, icon, desktop now become optional because by default"
+	echo "               those from the previous installation will be used. If"
+	echo "               you know they changed, though, set these options, too."
+	echo ""
+	echo "    uninstall  REQUIRES    program"
+	echo "               OPTIONAL    dry-run quiet"
+	echo ""
+	echo "               uninstall goes to the files in ~/.config/tarstall for"
+	echo "               program and performs and required uninstall steps to"
+	echo "               clean all files both in .config/ and */opt/."
+	echo ""
+	echo "    clean      REQUIRES    program"
+	echo "               OPTIONAL    dry-run quiet"
+	echo ""
+	echo "               If you wish to remove an older version, it may be the"
+	echo "               fastest to just go to */opt and delete the directory."
+	echo "               However, if you wish to only keep the version in use"
+	echo "               to clean up space, this command will do just that."
+}
+
+do_main ()
+{
+	while getopts hnqfus:b:i:d:p: argi
+	do
+		case $argi in
+			h)	print_help && exit 0;;
+			n)	dryrun=1;;
+			q)	quiet=1;;
+			f)	force=1;;
+			u)	inuser=1;;
+			s)	srcdir="$OPTARG";;
+			b)	binfile="$OPTARG";;
+			i)	icofile="$OPTARG";;
+			d)	desfile="$OPTARG";;
+			p)	programid="$OPTARG";;
+			?)	die 2;;
+		esac
+	done
+
+	shift $(($OPTIND - 1))
+	[ $# -eq 0 ] && die 1 "No command specified. If you attempted a dry run, please use -n option."
+	[ $# -ne 1 ] && die 1 "Too many commands. I can only execute one at a time."
+
+    [ -n "${quiet}" ] && [ -n "${dryrun}" ] && die 1 "dry-run and quiet cannot be both active at the same time."
+	[ -n "${quiet}" ] && log_set_quiet
+
+	cmd="$1"
+	case $cmd in
+		  install)	[ -z "${programid}" ] && die 1 "${cmd} requires program name."
+					[ -z "${binfile}" ] && die 1 "${cmd} requires binary file name."
+					[ -z "${icofile}" ] && die 1 "${cmd} requires icon file name."
+					[ -z "${desfile}" ] && die 1 "${cmd} requires desktop file name."
+					do_install "${cmd}" "${programid}" "${binfile}" "${icofile}" "${desfile}" \
+                                        "${dryrun}" "${force}" "${inuser}" "${srcdir}"
+                    ;;
+		   update)	[ -z "${programid}" ] && die 1 "${cmd} requires program name."
+                    do_update "${cmd}" "${programid}" \
+                                       "${binfile}" "${icofile}" "${desfile}" "${dryrun}" "${srcdir}"
+                    ;;
+uninstall | clean)	[ -z "${programid}" ] && die 1 "${cmd} requires program name."
+                    do_config_actions "${cmd}" "${programid}" "${dryrun}";;
+			    *)  die 1 "Unrecognized command: ${cmd}";;
+	esac
+    log_info "${cmd} complete"
+}
+
+do_install ()
+{
+    cmd="$1"
+    programid="$2"
+    binfile="$3"
+    icofile="$4"
+    desfile="$5"
+    dryrun="$6"
+    force="$7"
+    inuser="$8"
+    srcdir="$9"
+
+    [ -n "${srcdir}" ] && srcdir="$(realpath "${srcdir}")" || srcdir="$PWD"
+    [ ! -d "${srcdir}" ] && die 1 "${srcdir} is not an existing directory." 
+    [ ! -f "${srcdir}/${binfile}" ] && die 1 "${binfile} is not an existing file in ${srcdir}"
+    [ ! -f "${srcdir}/${icofile}" ] && die 1 "${icofile} is not an existing file in ${srcdir}"
+    [ ! -f "${srcdir}/${desfile}" ] && die 1 "${desfile} is not an existing file in ${srcdir}"
+
+    confpath="$(realpath ~/.config/tarstalled)"
+    conffile="${confpath}/${programid}"
+    if [ -n "${inuser}" ]; then
+        binpath="$(realpath ~/.local/bin)"
+        icopath="$(realpath ~/.local/share/icons)"
+        despath="$(realpath ~/.local/share/applications)"
+        optpath="$(realpath ~/.local/opt/tarstalled)"
+    else
+        binpath="/usr/local/bin"
+        icopath="/usr/local/share/icons"
+        despath="/usr/local/share/applications"
+        optpath="/opt/tarstalled"
+        _wsudo="sudo "
+    fi
+
+    srcname="$(basename "${srcdir}")"
+    inspath="${optpath}/${srcname}"
+    sympath="${optpath}/${programid}"
+
+    if [ -f "${conffile}" ]; then
+        log_warn "${conffile} already exists - maybe you wanted to update instead?"
+        exit 1
+    fi
+
+    if [ -d "${sympath}" ]; then
+        log_warn "${sympath} already exists - maybe you wanted to update instead?"
+        exit 1
+    fi
+
+    if [ -d "${inspath}" -a -z "${force}" ]; then
+        log_warn "${inspath} already exists - please rerun with -f to overwrite."
+        exit 1
+    fi
+
+    if [ -n "${dryrun}" ]; then
+        log_info "dry-run ${cmd} ${programid} (${srcname}) from ${srcdir}"
+
+        for curpath in "${optpath}" "${binpath}" "${icopath}" "${despath}"; do
+            if [ ! -d "${curpath}" ]; then
+                log_warn "${curpath}/ does not exist and it will be created."
+                echo "${_wsudo}create ${curpath}/"
+            fi
+        done
+
+        [ -d "${inspath}" ] && echo "${_wsudo}delete ${inspath}/"
+        echo "${_wsudo}copy ${srcdir}/ -> ${inspath}/"
+        echo "${_wsudo}symlink ${inspath}/ -> ${sympath}"
+        echo "${_wsudo}symlink ${sympath}/${binfile} -> ${binpath}/${binfile}"
+        echo "${_wsudo}symlink ${sympath}/${icofile} -> ${icopath}/${icofile}"
+        echo "${_wsudo}symlink ${sympath}/${desfile} -> ${despath}/${desfile}"
+        [ ! -d "${confpath}" ] && echo "create ${confpath}/"
+        echo "write ${conffile}"
+    else
+        log_info "${cmd} ${programid} (${srcname}) from ${srcdir}"
+        recover=
+
+        for curpath in "${optpath}" "${binpath}" "${icopath}" "${despath}"; do
+            if [ ! -d "${curpath}" ]; then
+                log_warn "${curpath}/ does not exist and it will be created."
+                ${_wsudo}mkdir "${curpath}/"
+                [ "$?" -ne 0 ] && op_failed_try "${recover}" && exit 1 
+                recover="${_wsudo}rmdir \"${curpath}/\";${recover}"
+            fi
+        done
+
+        if [ -d "${inspath}" ]; then
+            log_warn "${inspath} will be overwritten"
+            ${_wsudo}rm -rf "${inspath}/"
+            [ "$?" -ne 0 ] && op_failed_try "${recover}" && exit 1 
+        fi
+
+        log_info "copying installation directory"
+        ${_wsudo}cp -r "${srcdir}/" "${inspath}/"
+        [ "$?" -ne 0 ] && op_failed_try "${recover}" && exit 1 
+        recover="${_wsudo}rm -rf \"${inspath}/\";${recover}"
+
+        log_info "creating installation directory link" 
+        ${_wsudo}ln -sf "${inspath}/" "${sympath}"
+        [ "$?" -ne 0 ] && op_failed_try "${recover}" && exit 1 
+        recover="${_wsudo}rm \"${sympath}\";${recover}"
+
+        log_info "creating binary file link" 
+        ${_wsudo}ln -s "${sympath}/${binfile}" "${binpath}/${binfile}"
+        [ "$?" -ne 0 ] && op_failed_try "${recover}" && exit 1 
+        recover="${_wsudo}rm \"${binpath}/${binfile}\";${recover}"
+
+        log_info "creating icon file link" 
+        ${_wsudo}ln -s "${sympath}/${icofile}" "${icopath}/${icofile}"
+        [ "$?" -ne 0 ] && op_failed_try "${recover}" && exit 1 
+        recover="${_wsudo}rm \"${icopath}/${icofile}\";${recover}"
+
+        log_info "creating .desktop file link" 
+        ${_wsudo}ln -s "${sympath}/${desfile}" "${despath}/${desfile}"
+        [ "$?" -ne 0 ] && op_failed_try "${recover}" && exit 1 
+        recover="${_wsudo}rm \"${despath}/${desfile}\";${recover}"
+
+        if [ ! -d "${confpath}" ]; then
+            mkdir -p "${confpath}"
+            [ "$?" -ne 0 ] && op_failed_try "${recover}" && exit 1 
+            log_info "config directory created"
+        fi
+        log_info "writing configuration file"
+
+        echo "# MUTABLE #" >> "${conffile}"
+        echo "current=\"${inspath}\"" >> "${conffile}"
+        echo "actions=" >> "${conffile}"
+        echo "# UNMUTABLE #" >> "${conffile}"
+        echo "binpath=\"${binpath}\"" >> "${conffile}"
+        echo "binfile=\"${binfile}\"" >> "${conffile}"
+        echo "[ \"\${cmd}\" = \"uninstall\" ] && actions=\"${_wsudo}rm \\\"\${binpath}/\${binfile}\\\";\${actions}\"" >> "${conffile}"
+        echo "icopath=\"${icopath}\"" >> "${conffile}"
+        echo "icofile=\"${icofile}\"" >> "${conffile}"
+        echo "[ \"\${cmd}\" = \"uninstall\" ] && actions=\"${_wsudo}rm \\\"\${icopath}/\${icofile}\\\";\${actions}\"" >> "${conffile}"
+        echo "despath=\"${despath}\"" >> "${conffile}"
+        echo "desfile=\"${desfile}\"" >> "${conffile}"
+        echo "[ \"\${cmd}\" = \"uninstall\" ] && actions=\"${_wsudo}rm \\\"\${despath}/\${desfile}\\\";\${actions}\"" >> "${conffile}"
+        echo "sympath=\"${sympath}\"" >> "${conffile}"
+        echo "[ \"\${cmd}\" = \"uninstall\" ] && actions=\"${_wsudo}rm \\\"\${sympath}\\\";\${actions}\"" >> "${conffile}"
+        echo "# INSTALLATIONS #" >> "${conffile}"
+        echo "insdate=\"$(date)\"" >> "${conffile}"
+        echo "inspath=\"${inspath}\"" >> "${conffile}"
+        echo "[ \"\${cmd}\" = \"clean\" ] && [ \"\${inspath}\" != \"\${current}\" ] || [ \"\${cmd}\" = \"uninstall\" ] \\" >> "${conffile}"
+        echo "    && actions=\"${_wsudo}rm -rf \\\"\${inspath}/\\\";\${actions}\"" >> "${conffile}"
+    fi
+}
+
+do_update ()
+{
+    cmd="$1"
+    programid="$2"
+    binfile="$3"
+    icofile="$4"
+    desfile="$5"
+    dryrun="$6"
+    srcdir="$7"
+
+    confpath="$(realpath ~/.config/tarstalled)"
+    conffile="${confpath}/${programid}"
+
+    if [ ! -d "${confpath}" ]; then
+        log_warn "config directory ${confpath} does not exist - nothing to do."
+        exit 1
+    fi
+
+    if [ ! -f "${conffile}" ]; then
+        log_warn "${confpath} contains no configuration file for ${programid} - nothing to do."
+        exit 1
+    fi
+
+    [ -n "${srcdir}" ] && [ ! -d "${srcdir}" ] && die 1 "${srcdir} is not an existing directory." 
+    [ -z "${srcdir}" ] && srcdir="$PWD" || srcdir="$(realpath "${srcdir}")"
+    [ ! -f "${srcdir}/${binfile}" ] && die 1 "${binfile} is not an existing file in ${srcdir}"
+    [ ! -f "${srcdir}/${icofile}" ] && die 1 "${icofile} is not an existing file in ${srcdir}"
+    [ ! -f "${srcdir}/${desfile}" ] && die 1 "${desfile} is not an existing file in ${srcdir}"
+
+    if [ -n "${dryrun}" ]; then
+        log_info "dry-run ${cmd} ${programid} (${srcname}) from ${srcdir}"
+        echo "${_wsudo}copy ${srcdir}/ -> ${inspath}/"
+        echo "${_wsudo}symlink ${inspath}/ -> ${sympath}/"
+        echo "update ${conffile}"
+    else
+        log_info "${cmd} ${programid} (${srcname}) from ${srcdir}"
+        #sed -i "1s/.*/$var/" file.txt
+    fi
+}
+
+do_config_actions ()
+{
+    cmd="$1"
+    programid="$2"
+    dyrun="$3"
+
+    confpath="$(realpath ~/.config/tarstalled)"
+    conffile="${confpath}/${programid}"
+
+    if [ ! -d "${confpath}" ]; then
+        log_warn "config directory ${confpath} does not exist - nothing to do."
+        exit 1
+    fi
+
+    if [ ! -f "${conffile}" ]; then
+        log_warn "${confpath} contains no configuration file for ${programid} - nothing to do."
+        exit 1
+    fi
+
+    . "${conffile}"
+    if [ -z "${actions}" ]; then
+        log_info "nothing to ${cmd} for ${programid}."
+        exit 1
+    fi
+
+    if [ -n "${dryrun}" ]; then
+        log_info "dry-run ${cmd} ${programid}"
+        echo "${actions}" | tr ";" "\n"
+        [ "${cmd}" = "uninstall" ] && echo "rm \"${conffile}\"" || echo "update \"${conffile}\""
+    else
+        log_info "${cmd} ${programid}"
+        eval "${actions}"
+        [ "${cmd}" = "uninstall" ] && rm "${conffile}" || configfile update "${conffile}"
+    fi
+}
+
+do_main "$@"
+

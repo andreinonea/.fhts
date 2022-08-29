@@ -1,0 +1,12 @@
+#!/usr/bin/env sh
+# Place all path extensions inside the if block.
+
+if [ ! $ANO_SCRIPTS_INITIALIZED ]; then
+
+	# set PATH so it includes user's private bin if it exists
+	if [ -d "$HOME/.local/bin" ] ; then
+    	PATH="$HOME/.local/bin:$PATH"
+	fi
+
+fi
+

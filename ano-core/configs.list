@@ -1,0 +1,8 @@
+init.sh:f0c6f1318649cde70bfa98fa15815d25:${USER}:${USER}:0644:${HOME}/.config/ano/init.sh
+tarstall:bf0b7f5a58267195605de72ca5a3de73:${USER}:${USER}:0755:${HOME}/.config/ano/executables.d/tarstall
+mkdate.sh:d6a5b3443560ecab65d8029ca8131072:${USER}:${USER}:0644:${HOME}/.config/ano/sourceables.d/mkdate.sh
+search-directory.sh:ac50e73272c0cbf0d93cbf760932d708:${USER}:${USER}:0644:${HOME}/.config/ano/sourceables.d/search-directory.sh
+git-prompt.sh:1fa8756e29023b7e0559ae5fe1193791:${USER}:${USER}:0644:${HOME}/.config/ano/sourceables.d/git-prompt.sh
+path-extensions:09ee7e1e204e1c56e5a40eb86cf4ac44:${USER}:${USER}:0644:${HOME}/.config/ano/sourceables.d/path-extensions
+liblog.sh:b3358a72a0a9889c777f2266afa2b9ef:${USER}:${USER}:0644:${HOME}/.config/ano/sourceables.d/shlibs/liblog.sh
+libgit-prompt.sh:8e9db6cf7ac1a578dfcb332c8b37b2c9:${USER}:${USER}:0644:${HOME}/.config/ano/sourceables.d/shlibs/libgit-prompt.sh
