@@ -1,0 +1,47 @@
+#!/usr/bin/env bash
+# .bmwfile contains configurations pertaining to this machine. If you are going
+# to use Docker, please write shared configurations in files sourced at the end
+# and never source this file inside your Docker container.
+# Write your other configurations below this line.
+
+export WORK_DIR="${HOME}/work"
+
+# Jfrog access_token
+export ARTIFACTORY_AT=""
+
+# Setup environment variables for IPB.
+export JIRA_IPB_PAT=""
+export IPB_DIR="${WORK_DIR}/ipb"
+export IPB_REPO="${IPB_DIR}/master"
+alias cdsp25="cd ${IPB_REPO}"
+alias cdipb="cd ${IPB_REPO}"
+
+# Setup environment variables for BCP2021.
+export BCP_CONTAINER_NAME="master"
+
+# Change environment settings on the fly.
+# Run with no arguments to reset to default - "master"
+bcpsetup ()
+{
+    export BCP_CONTAINER_NAME="${1:-master}"
+    . ~/.bcpfile
+}
+
+hice ()
+{
+    local ver="3"
+    case "$(uname -s)" in
+        MINGW*)
+            ver=
+            ;;
+    esac
+    cd "${WORK_DIR}/HICE"
+    svn update
+    "python${ver}" -m http.server
+}
+
+# Source configuration files for following projects if existing.
+# Make sure to bind these in Docker and source them directly.
+[ -f "${HOME}/.bcpfile" ] && . ~/.bcpfile
+[ -f "${HOME}/.ipbfile" ] && . ~/.ipbfile
+

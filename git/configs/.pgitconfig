@@ -1,0 +1,81 @@
+#!/usr/bin/env bash
+
+__do_nop()
+{
+    echo "NOP: $@"
+}
+
+NAME="aonea"
+INITIALS="AnOn"
+
+__do_checkout_new_branch()
+{
+    local usage="usage: git cn '[jira_ticket]_[branch_name]'"
+    [ "$1" = "-h" ] && echo "${usage}" && return 0
+    [ $# -ne 1 ] && echo "error: invalid arguments: ${usage}" && return 1
+
+    git checkout -b "${NAME}_$1"
+}
+
+__do_commit_new()
+{
+    local usage="usage: git c[sr] [jira_ticket] <message>"
+
+    local branch=
+    local amend=
+
+    if [ "$1" = "--smart" ]; then
+        branch="$(git rev-parse --abbrev-ref HEAD)"
+        shift
+    fi
+    if [ "$1" = "--amend" ]; then
+        amend=" --amend"
+        shift
+    fi
+    [ "$1" = "-h" ] && echo "${usage}" && return 0
+
+    [ $# -eq 2 ] && branch="$1" && shift
+    [ $# -ne 1 ] && echo "error: invalid arguments: ${usage}" && return 1
+
+    # Check if a valid JIRA key is presented.
+    local valid="$(echo "${branch}" | sed -n "s/^\([A-Z]\+\-[0-9]\+\).*$/\1/p")"
+    [ -z "${valid}" ] && valid="$(echo "${branch}" | sed -n "s/^${NAME}_\([A-Z]\+\-[0-9]\+\).*$/\1/p")"
+    [ -z "${valid}" ] && valid="---"
+    branch="${valid}"
+
+    git commit${amend} -m "${branch}/${INITIALS}: $1"
+}
+
+__do_protected_branch()
+{
+    local usage="usage: git pb <version_number>"
+    [ "$1" = "-h" ] && echo "${usage}" && return 0
+
+    [ $# -ne 1 ] && echo "error: invalid arguments: ${usage}" && return 1
+    local create="create-branch/"
+    local branch="begu-interface/$1"
+
+    git tag -s "${create}${branch}" -m "Create protected branch ${branch}"
+    git push upstream "${create}${branch}"
+}
+
+__do_add_filtered()
+{
+    local usage="usage: git af[n] <filtered_path>, where n stands for dry-run"
+
+    local searchpath=
+    local dryrun=
+
+    if [ "$1" = "--dry-run" ]; then
+        dryrun="--dry-run"
+        shift
+    fi
+    [ $# -ne 1 ] && echo "error: invalid arguments: ${usage}" && return 1
+    [ "$1" = "-h" ] && echo "${usage}" && return 0
+
+    searchpath="$1"
+    #searchpath="${searchpath//\*/\\\*}"
+
+    eval git add "${dryrun}" "${searchpath}"
+}
+

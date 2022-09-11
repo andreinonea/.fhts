@@ -1,0 +1,54 @@
+# This is Git's per-user configuration file.
+[user]
+	name = Onea Andrei
+	email = onea.andrei@partner.bmw.de
+	# signingkey = XYZ
+[color]
+	branch = auto
+	diff = auto
+	interactive = auto
+	status = auto
+	grep = auto
+[alias]
+	nop = "!f() { . ~/.pgitconfig && __do_nop \"$@\"; }; f"
+	au = add -u
+	aA = add -A
+	co = checkout
+	cb = checkout -
+	cnf = checkout -b
+	cn = "!f() { . ~/.pgitconfig && __do_checkout_new_branch \"$@\"; }; f"
+	bm = branch -m
+	bd = branch -d
+	bD = branch -D
+	cp = cherry-pick
+	c = "!f() { . ~/.pgitconfig && __do_commit_new \"$@\"; }; f"
+	cr = "!f() { . ~/.pgitconfig && __do_commit_new --amend \"$@\"; }; f"
+	cs = "!f() { . ~/.pgitconfig && __do_commit_new --smart \"$@\"; }; f"
+	csr = "!f() { . ~/.pgitconfig && __do_commit_new --smart --amend \"$@\"; }; f"
+	crs = "!f() { . ~/.pgitconfig && __do_commit_new --smart --amend \"$@\"; }; f"
+	cm = commit -m
+	ca = commit --amend --no-edit
+	ce = commit --amend
+	s = status -sb
+	l = log --oneline
+	f = fetch
+	pu = push
+	pf = push -f
+	pl = pull
+	po = "!f() { git push --set-upstream origin $(git rev-parse --abbrev-ref HEAD); }; f"
+	pb = "!f() { . ~/.pgitconfig && __do_protected_branch \"$@\"; }; f"
+	roll = "!f() { git add -u && git commit --amend --no-edit && git push -f; }; f"
+	af = "!f() { . ~/.pgitconfig && __do_add_filtered \"$@\"; }; f"
+	afn = "!f() { . ~/.pgitconfig && __do_add_filtered --dry-run \"$@\"; }; f"
+	ri = "!f() { git rebase -i HEAD~\"$@\"; }; f"
+	rc = rebase --continue
+	ra = rebase --abort
+[pull]
+	ff = only
+#[blame]
+#	ignoreRevsFile = .git-blame-ignore-revs
+[init]
+	defaultBranch = master
+[core]
+	editor = vim
+

@@ -1,0 +1,158 @@
+#!/usr/bin/env bash
+
+# Personal Access Tokens
+export GH_BCP21_PAT=""
+
+# Setup environment variables for BCP2021.
+# Check if running in a Docker instance with a simple trick.
+[ "${USER}" = "${USER_NAME}" ] && in_docker="true"
+if [ "${in_docker}" ]; then
+    export BCP_DIR="${HOME}"
+    export BCP_REPO="${BCP_DIR}/src"
+    export BCP_OUT="${BCP_DIR}/build"
+else
+    export BCP_DIR="${WORK_DIR}/bcp"
+    export BCP_REPO="${BCP_DIR}/${BCP_CONTAINER_NAME}"
+    export BCP_OUT="${BCP_DIR}/build/${BCP_CONTAINER_NAME}"
+fi
+# Required to build.
+export WORKSPACE="${BCP_REPO}"
+export BCPUTIL_SOURCE="${BCP_DIR}/BCPUtil"
+export ZSG_DIR_BUILD="${BCP_OUT}/target"
+export DIR_BUILD_UNITTESTS="${BCP_OUT}/UT"
+export BCPCI_OUTPUT_DIR="${BCP_OUT}/devenv"
+export BCPCI_CODECRAFT_USER="oneaandreipartner"
+# Not required, but useful.
+export BCP_DOMAIN_UNDER_TEST="^(climate)"
+export ZSG_DEVELOPER_DOMAIN_FILTER="climate"
+# Windows only
+if [[ "$(uname -s)" == "MINGW"* ]]; then
+    export BCP_MAKE_SYSTEM="Visual Studio 16 2019"
+    # Needed because developer environment does not yet support Python 3.9.
+    export BCPCI_PYTHON_VERSION=3.9
+fi
+
+# Aliases for common paths
+alias cdbcp21="cd ${BCP_REPO}"
+alias cdbcp21="cd ${BCP_REPO}"
+alias cdbcp="cd ${BCP_REPO}"
+alias cdbegutooling="cd ${BCP_REPO}/apps/climate/scripts/begu_tooling"
+alias cdbegu="cd ${BCP_DIR}/BEGU-climate"
+
+# Aliases for BEGU integration. To be used in conjunction with an editing tool.
+# E.g. vim $beguclimateyaml
+export beguclimateyaml="${BCP_REPO}/toolenv/begu-climate.yaml"
+
+# Path to doit Config directory from where doit commands are run.
+DOIT_PATH="${BCP_REPO}/Config/doit"
+
+# Initialize BCP21 environment
+init ()
+{
+    . "${BCPUTIL_SOURCE}/Scripts/toolenv/prepare-tools.sh"
+}
+
+# Doit commands
+doit-this ()
+{
+    what="${1:-generate}"
+    who="${2:-dodo_UT.py}"
+    doit -f "${DOIT_PATH}/${who}" "${what}"
+    ret="$?"
+    [ "${ret}" -eq 127 ] && echo "Maybe you forgot to run 'init' first?" && return "${ret}"
+}
+
+doit-list ()
+{
+    doit-this list "$1"
+}
+
+doit-gen ()
+{
+    doit-this generate
+}
+
+doit-cfgut ()
+{
+    doit-this configure_unit_tests
+}
+
+doit-begu ()
+{
+    doit-this "generate_config_layer$1"
+}
+
+doit-buildall ()
+{
+    doit-this build_unit_tests
+}
+
+doit-testall ()
+{
+    doit-this run_unit_tests
+}
+
+doit-clean ()
+{
+    cmake --build "${DIR_BUILD_UNITTESTS}" --target "clean" --
+}
+
+doit-build ()
+{
+    cmake --build "${DIR_BUILD_UNITTESTS}" --target "gtest_swc_climate_$1" --
+}
+
+doit-build-verbose ()
+{
+    cmake --build "${DIR_BUILD_UNITTESTS}" --target "$1" --
+}
+
+doit-test ()
+{
+    component=
+    domain=
+    dbg=
+    filter=
+
+    OPTIND=1 # Reset in case getopts has been used previously in the shell.
+    while getopts "gf:" opt; do
+    case "$opt" in
+        g)  dbg=1
+        ;;
+        f)  filter="${OPTARG}"
+        ;;
+    esac
+    done
+    shift $((OPTIND-1))
+    [ "${1:-}" = "--" ] && shift
+
+    [ "$#" -eq 0 ] && echo "error: no module provided (e.g. cpf, obd, cfl_flaps)." && return
+
+    [ -n "${filter}" ] && [ "$#" -gt 1 ] && echo "info: too many positional arguments: only the first is considered (module)."
+    [ -z "${filter}" ] && [ "$#" -gt 2 ] && echo "info: too many positional arguments: only the first two are considered (module, filter)."
+
+    component="$1"
+    domain="$1"
+    # If cfl, strip cfl.
+    [[ "${component}" == "cfl"* ]] && domain="cfl"
+
+    # If on Windows, add ".exe", and remove dbg option.
+    [[ "$(uname -s)" == "MINGW"* ]] && ext=".exe" && debug="Debug/" && dbg=
+
+    # Construct final path.
+    pathexe="${DIR_BUILD_UNITTESTS}/apps/climate/${domain}/test/gtest/${debug}gtest_swc_climate_${component}${ext}"
+
+    if [ -n "${dbg}" ]; then
+        gdb "${pathexe}"
+    else
+        [ -z "${filter}" ] && filter="${2:-*}"
+        "${pathexe}" "--gtest_filter=${filter}"
+    fi
+}
+
+pleasedo ()
+{
+    [ "$1" = "-g" ] && module="$2" || module="$1"
+    doit-build "${module}" && doit-test "$@"
+}
+
