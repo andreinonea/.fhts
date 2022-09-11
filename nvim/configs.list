@@ -1,0 +1,3 @@
+init.vim:453917cd92ebb91c34c2fa82fd466682:${USER}:${USER}:0644:${HOME}/.config/nvim/init.vim
+init.lua:d41d8cd98f00b204e9800998ecf8427e:${USER}:${USER}:0644:${HOME}/.config/nvim/lua/init.lua
+plugins.lua:b5dd4726d321feed1d445c29cd88f5ab:${USER}:${USER}:0644:${HOME}/.config/nvim/lua/plugins.lua
