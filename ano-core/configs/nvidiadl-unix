@@ -1,0 +1,39 @@
+#!/usr/bin/env python3
+
+from bs4 import BeautifulSoup
+import requests
+
+r = requests.get("https://www.nvidia.com/en-us/drivers/unix/")
+if r.status_code != 200:
+    print("could not get nvidia unix download page")
+
+html_doc = r.text
+soup = BeautifulSoup(html_doc, "html.parser")
+
+for p in soup.find_all("p"):
+    if "Linux x86_64" in p.strong.string:
+        r = requests.get(p.a.get("href"))
+        if r.status_code != 200:
+            print("could not get latest driver page")
+        break
+
+html_doc = r.text
+soup = BeautifulSoup(html_doc, "html.parser")
+
+link = soup.find(id="lnkDwnldBtn")
+if not link:
+    print("could not find download button on driver page")
+
+r = requests.get(f"https://www.nvidia.com{link.get('href')}")
+if r.status_code != 200:
+    print("could not get driver download page")
+
+html_doc = r.text
+soup = BeautifulSoup(html_doc, "html.parser")
+
+main_body = soup.find(id="mainContent")
+if not main_body:
+    print("could not find main body in download page")
+
+download_url = f"https:{main_body.table.a.get('href')}"
+print(download_url)

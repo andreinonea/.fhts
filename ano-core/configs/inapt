@@ -1,0 +1,12 @@
+#!/usr/bin/env sh
+# Calls apt install but saves packages that attempted installation.
+
+[ "$USER" = "root" ] && echo "Please run without root access. It will be asked anyway, but restricted to the apt install command." && return 1
+[ "$1" != "install" ] && echo "usage: inapt install <packages ...>" && return 1
+shift
+
+[ -n "${ANO_CONFIGS_DIR}" ] && saveloc="${ANO_CONFIGS_DIR}" || saveloc="/home/${USER}"
+sudo apt install "$@"
+saveloc="${saveloc}/inapt.$?"
+echo "$@" | tr " " "\n" >> "${saveloc}"
+[ "$?" -eq 0 ] && echo "Saved $@ to ${saveloc}" || echo "Could not save packages to ${saveloc}" && return 1 

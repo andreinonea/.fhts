@@ -1,12 +1,30 @@
 #!/usr/bin/env sh
 # Place all path extensions inside the if block.
 
+# Extend $PATH variable avoiding duplicates.
+pathextend ()
+{
+    # Affix colons on either side of $PATH to simplify matching (credits to Rust).
+    case ":${PATH}:" in
+        *:"$1":*)
+            ;;
+        *)
+            export PATH="$1:${PATH}"
+            ;;
+    esac
+    return
+}
+
 if [ ! $ANO_SCRIPTS_INITIALIZED ]; then
 
 	# set PATH so it includes user's private bin if it exists
 	if [ -d "$HOME/.local/bin" ] ; then
-    	PATH="$HOME/.local/bin:$PATH"
+    	pathextend "$HOME/.local/bin"
 	fi
 
+    # set PATH so it includes rust cargo bin if it exists
+    if [ -d "$HOME/.cargo" ]; then
+        . "$HOME/.cargo/env"
+    fi
 fi
 

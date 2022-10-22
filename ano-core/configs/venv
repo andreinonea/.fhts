@@ -1,0 +1,19 @@
+#!/usr/bin/env sh
+# Shared directory for all Python virtual environments.
+export VENV_LOCATION="${ANO_CONFIGS_DIR}/venvs"
+venv ()
+{
+    # Default to non-Unix settings, change if Unix detected.
+    local ver=
+    local loc="Scripts"
+    case "$(uname -s)" in
+        *Linux*)
+            ver="3"
+            loc="bin"
+            ;;
+    esac
+    [ ! -d "${VENV_LOCATION}" ] && mkdir -p "${VENV_LOCATION}"
+    [ ! -d "${VENV_LOCATION}/$1" ] && "python${ver}" -m venv "${VENV_LOCATION}/$1"
+
+    . "${VENV_LOCATION}/$1/${loc}/activate"
+}

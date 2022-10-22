@@ -22,10 +22,10 @@ if [ -z "${ANO_sourced}" ]; then
     return
 fi
 
-ANO_basedir="${HOME}/.config/ano"
-export ANO_SOURCEABLES_DIR="${ANO_basedir}/sourceables.d"
-export ANO_EXECUTABLES_DIR="${ANO_basedir}/executables.d"
-export ANO_SH_LIBS_DIR="${ANO_basedir}/sourceables.d/shlibs"
+export ANO_CONFIGS_DIR="${HOME}/.config/ano"
+export ANO_SOURCEABLES_DIR="${ANO_CONFIGS_DIR}/sourceables.d"
+export ANO_EXECUTABLES_DIR="${ANO_CONFIGS_DIR}/executables.d"
+export ANO_SH_LIBS_DIR="${ANO_CONFIGS_DIR}/sourceables.d/shlibs"
 
 # Created sourceables.d/ and executables.d/ folders if not found.
 [ ! -d "${ANO_SOURCEABLES_DIR}" ] && mkdir "${ANO_SOURCEABLES_DIR}"
@@ -54,6 +54,5 @@ done
 export ANO_SCRIPTS_INITIALIZED=1
 
 unset ANO_cur_file
-unset ANO_basedir
 unset ANO_sourced
 
