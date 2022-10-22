@@ -1,0 +1,105 @@
+{
+    // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+    //  Stuff that needs to take a break.
+    // VSCode
+    "telemetry.telemetryLevel": "off",
+
+    // CMake
+    "cmake.configureOnOpen": false,
+    "cmake.configureOnEdit": false,
+
+    // Built-in JSON formatter
+    "json.format.enable": false,
+    // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+
+    // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+    // Visual settings.
+    // Workbench
+    "workbench.startupEditor": "none",
+    "workbench.iconTheme": "material-icon-theme",
+    "workbench.list.horizontalScrolling": true,
+
+    // Editor (global)
+    "editor.suggestSelection": "first",
+    "editor.trimAutoWhitespace": true,
+    "editor.renderWhitespace": "all",
+    "editor.formatOnPaste": false,
+    "editor.formatOnSave": false,
+    "editor.formatOnSaveMode": "file",
+    "editor.formatOnType": false,
+    "editor.tabCompletion": "on",
+    "editor.tabSize": 4,
+    "editor.detectIndentation": false,
+    "editor.insertSpaces": true,
+    "editor.comments.insertSpace": true,
+    "editor.acceptSuggestionOnEnter": "smart",
+    "editor.rulers": [80],
+    "editor.wordWrap": "off",
+    "editor.guides.highlightActiveBracketPair": true,
+    "editor.guides.highlightActiveIndentation": "always",
+    "editor.guides.bracketPairs": "active",
+    "editor.guides.bracketPairsHorizontal": "active",
+    "editor.guides.indentation": true,
+    "editor.inlayHints.enabled": "on",
+    "editor.quickSuggestions": {
+        "other": "on",
+        "comments": "off",
+        "strings": "off"
+    },
+    // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+
+    // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+    // Generators settings.
+    // CMake
+    "cmake.generator": "Ninja Multi-Config",
+    "cmake.buildDirectory": "${workspaceFolder}/_build",
+    "cmake.configureSettings": {
+        "CMAKE_PREFIX_PATH": "${workspaceFolder}/_sysroot/usr/local",
+    },
+    // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+
+    // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+    // Language settings.
+    // C++
+    // "astyle.cpp.enable": true,
+    // "astyle.c.enable": true,
+    // "[cpp]": {
+    //     "editor.defaultFormatter": "chiehyu.vscode-astyle"
+    // },
+
+    // Python
+    "python.formatting.provider": "black",
+
+    // JSON
+    "[json]": {
+        // Editor
+        "editor.quickSuggestions": {
+            "strings": true,
+            "comments": true,
+            "other": true
+        },
+        "editor.suggest.insertMode": "insert",
+        "editor.formatOnPaste": false,
+        "editor.formatOnSave": false,
+        "editor.formatOnType": false,
+
+        // Gitlens
+        "gitlens.codeLens.scopes": [
+            "document"
+        ]
+    },
+    "hediet.vscode-drawio.theme": "Kennedy",
+    "java.jdt.ls.java.home": "/usr/lib/jvm/java-17-openjdk-amd64",
+    "java.import.gradle.java.home": "/usr/lib/jvm/java-17-openjdk-amd64",
+    "java.dependency.showMembers": true,
+    "java.configuration.runtimes": [
+        {
+          "name": "JavaSE-17",
+          "path": "/usr/lib/jvm/java-17-openjdk-amd64",
+          "sources" : "/usr/lib/jvm/java-17-openjdk-amd64/lib/src.zip",
+          "javadoc" : "https://docs.oracle.com/en/java/javase/17/docs/api",
+          "default":  true,
+        },
+    ],
+    // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+}
