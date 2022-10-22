@@ -1,0 +1,6 @@
+#!/usr/bin/env sh
+
+if [ $TILIX_ID ] || [ $VTE_VERSION ]; then
+	. /etc/profile.d/vte.sh
+fi
+

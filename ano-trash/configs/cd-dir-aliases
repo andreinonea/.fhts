@@ -1,0 +1,4 @@
+#!/usr/bin/env sh
+
+# Fast-forward to OpenGL testing repo
+alias ffopengl='cd ~/git/220311-test-opengl/_build'

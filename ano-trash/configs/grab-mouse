@@ -1,0 +1,4 @@
+#!/usr/bin/env sh
+
+# Fix mouse no control when debugging 3D real-time program.
+alias grab-mouse='setxkbmap -option grab:break_actions && xdotool key XF86Ungrab'

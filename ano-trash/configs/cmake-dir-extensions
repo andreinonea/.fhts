@@ -1,0 +1,4 @@
+#!/usr/bin/env sh
+
+export QT_DIR="${HOME}/Qt/6.3.0/gcc_64/lib/cmake/Qt6"
+export Qt6_DIR="${HOME}/Qt/6.3.0/gcc_64/lib/cmake/Qt6"

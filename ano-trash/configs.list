@@ -1,0 +1,6 @@
+cd-dir-aliases:59c210cc423708950372aae567c40b24:${USER}:${USER}:0644:${HOME}/.config/ano/sourceables.d/cd-dir-aliases
+cmake-dir-extensions:0fa3eeb509b575f87e371031d197d53e:${USER}:${USER}:0644:${HOME}/.config/ano/sourceables.d/cmake-dir-extensions
+grab-mouse:edce539a6fdbf387702d760bab7959a9:${USER}:${USER}:0644:${HOME}/.config/ano/sourceables.d/grab-mouse
+java-home-export:c3dd7b33db792d064dd691d6dd5062d0:${USER}:${USER}:0644:${HOME}/.config/ano/sourceables.d/java-home-export
+telemetry-optout:3f21f7ea1b620d24287a6a9f00ed6921:${USER}:${USER}:0644:${HOME}/.config/ano/sourceables.d/telemetry-optout
+tilix_vte_fix:2717208e9554c762b91c91893aefe1b7:${USER}:${USER}:0644:${HOME}/.config/ano/sourceables.d/tilix_vte_fix
